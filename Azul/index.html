@@ -1,0 +1,721 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+
+
+  <title>Azul Scoring App</title>
+  <style>
+
+
+  #scaler {
+    transform-origin: top left;
+    width: 1496px;
+    height: 826px;
+    position: absolute;
+    top: 0;
+    left: 0;
+  }
+    html, body {
+      margin: 0;
+      padding: 0;
+      overflow: hidden;
+      font-family: sans-serif;
+    }
+    #game {
+      position: relative;
+      width: 1496px;
+      height: 826px;
+      background: url('background.jpg') no-repeat center center;
+      background-size: cover;
+      visibility: hidden;
+    }
+    #score {
+      position: absolute;
+      left: 165px;
+      top: 187px;
+      transform: translate(-50%, -50%);
+      font-size: 90px;
+      color: white;
+      text-shadow: 0 0 3px black, 0 0 5px black;
+    }
+    .penalty {
+      position: absolute;
+      width: 38px;
+      height: 61px;
+      cursor: pointer;
+    }
+    #end-round, #end-game {
+      position: absolute;
+      left: 80px;
+      width: 180px;
+      height: 64px;
+      cursor: pointer;
+      opacity: 0;
+      transition: opacity 1s ease;
+    }
+    #end-round { top: 350px; }
+    #end-game { top: 410px; }
+
+    .player-tile, .wall-tile {
+      box-shadow: 4px 4px 8px rgba(0, 0, 0, 0.7);
+      border-radius: 8px;
+      position: absolute;
+      width: 115px;
+      height: 115px;
+    }
+    .player-tile { cursor: pointer; }
+    .wall-tile { }
+
+    #popup {
+      position: absolute;
+      width: 320px;
+      background: rgba(255,255,255,0.95);
+      border: none;
+      border-radius: 12px;
+      padding: 10px;
+      display: none;
+      flex-wrap: wrap;
+      justify-content: center;
+      gap: 10px;
+      z-index: 999;
+    }
+    .tile-option {
+      width: 48px;
+      height: 48px;
+      cursor: pointer;
+  box-shadow: 2px 2px 6px rgba(0, 0, 0, 0.4);
+  border-radius: 4px;
+}
+
+
+.player-tile.has-tile,
+.wall-tile.has-tile {
+  box-shadow: 4px 4px 8px rgba(0, 0, 0, 0.7);
+  border-radius: 6px;
+}
+
+  .fly-left {
+    animation: flyLeft 0.6s forwards;
+  }
+
+  @keyframes flyLeft {
+    0% {
+      opacity: 1;
+      transform: rotate(0deg) translateX(0px);
+    }
+    100% {
+      opacity: 0;
+      transform: rotate(-40deg) translateX(-600px);
+    }
+  }
+
+  .slide-to-wall {
+    transition: all 0.5s ease;
+    z-index: 999;
+  }
+
+    .glow {
+      box-shadow: 0 0 20px 8px white;
+      transition: box-shadow 0.2s ease;
+    }
+
+#intro {
+  position: absolute;
+  width: 1496px;
+  height: 826px;
+  top: 0;
+  left: 0;
+  background-color: black;
+  overflow: hidden;
+  z-index: 2000;
+  opacity: 1;
+  transition: opacity 1s ease;
+}
+
+#logo-bg {
+  position: absolute;
+  width: 100%;
+  height: 100%;
+  z-index: 1;
+}
+
+.logo-tile {
+  position: absolute;
+  width: 212px;
+  height: 212px;
+  background-size: cover;
+  opacity: 0.85;
+  filter: blur(0px);
+  transition: filter 0.5s ease, background-image 0.4s ease;
+}
+
+#main-logo {
+  position: absolute;
+  width: 840px;
+  height: 588px;
+  left: 50%;
+  top: 50%;
+  transform: translate(-50%, -50%) scale(1);
+  z-index: 2;
+  pointer-events: none;
+  opacity: 0;
+  filter: blur(8px);
+  transition: transform 1.5s ease, opacity 1s ease, filter 1.5s ease;
+}
+#game {
+  visibility: hidden;
+}
+    #final-score-overlay {
+      position: absolute;
+      width: 600px;
+      height: 227px;
+      left: 50%;
+      top: 50%;
+      transform: translate(-50%, -50%);
+      background: url('finalscore.png') no-repeat center;
+      background-size: contain;
+      display: none;
+      z-index: 3000;
+    }
+    #final-score-number {
+      position: absolute;
+      width: 150px;
+      height: 150px;
+      left: 235px;
+      top: 38px;
+      font-size: 72px;
+      color: black;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-weight: bold;
+    }
+    #new-game-btn {
+      position: absolute;
+      width: 175px;
+      height: 178px;
+      left: 410px;
+      top: 25px;
+      cursor: pointer;
+    }
+
+    #confirm-end {
+      position: absolute;
+      left: 50%;
+      top: 50%;
+      transform: translate(-50%, -50%);
+    }
+  </style>
+</head>
+<body>
+<div id="scaler">
+<div id="intro">
+  <div id="logo-bg"></div>
+  <img id="main-logo" src="logo.png" />
+</div>
+
+
+
+<div id="scaler">
+  <div id="game">
+  <div id="score">0</div>
+
+  <!-- Penalty Buttons -->
+  <img class="penalty" id="p1" src="m1up.png" style="left:75px; top:278px">
+  <img class="penalty" id="p2" src="s1up.png" style="left:113px; top:278px">
+  <img class="penalty" id="p3" src="s2up.png" style="left:151px; top:278px">
+  <img class="penalty" id="p4" src="s2up.png" style="left:189px; top:278px">
+  <img class="penalty" id="p5" src="s2up.png" style="left:227px; top:278px">
+  <img class="penalty" id="p6" src="s3up.png" style="left:265px; top:278px">
+  <img class="penalty" id="p7" src="s3up.png" style="left:303px; top:278px">
+
+
+
+
+  <!-- Player Rows - clickable tiles -->
+  <div class="player-tile" id="r1c1" style="left:594px; top:101px;"></div>
+  <div class="player-tile" id="r2c1" style="left:464px; top:232px;"></div>
+  <div class="player-tile" id="r2c2" style="left:594px; top:232px;"></div>
+  <div class="player-tile" id="r3c1" style="left:334px; top:363px;"></div>
+  <div class="player-tile" id="r3c2" style="left:464px; top:363px;"></div>
+  <div class="player-tile" id="r3c3" style="left:594px; top:363px;"></div>
+  <div class="player-tile" id="r4c1" style="left:204px; top:494px;"></div>
+  <div class="player-tile" id="r4c2" style="left:334px; top:494px;"></div>
+  <div class="player-tile" id="r4c3" style="left:464px; top:494px;"></div>
+  <div class="player-tile" id="r4c4" style="left:594px; top:494px;"></div>
+  <div class="player-tile" id="r5c1" style="left:74px; top:625px;"></div>
+  <div class="player-tile" id="r5c2" style="left:204px; top:625px;"></div>
+  <div class="player-tile" id="r5c3" style="left:334px; top:625px;"></div>
+  <div class="player-tile" id="r5c4" style="left:464px; top:625px;"></div>
+  <div class="player-tile" id="r5c5" style="left:594px; top:625px;"></div>
+
+  <!-- Popup -->
+  <div id="popup"></div>
+<!-- Wall Grid (placed tiles) -->
+<div class="wall-tile" id="w0c0" style="left:789px; top:101px;"></div>
+<div class="wall-tile" id="w0c1" style="left:917px; top:101px;"></div>
+<div class="wall-tile" id="w0c2" style="left:1045px; top:101px;"></div>
+<div class="wall-tile" id="w0c3" style="left:1173px; top:101px;"></div>
+<div class="wall-tile" id="w0c4" style="left:1301px; top:101px;"></div>
+
+<div class="wall-tile" id="w1c0" style="left:789px; top:232px;"></div>
+<div class="wall-tile" id="w1c1" style="left:917px; top:232px;"></div>
+<div class="wall-tile" id="w1c2" style="left:1045px; top:232px;"></div>
+<div class="wall-tile" id="w1c3" style="left:1173px; top:232px;"></div>
+<div class="wall-tile" id="w1c4" style="left:1301px; top:232px;"></div>
+
+<div class="wall-tile" id="w2c0" style="left:789px; top:363px;"></div>
+<div class="wall-tile" id="w2c1" style="left:917px; top:363px;"></div>
+<div class="wall-tile" id="w2c2" style="left:1045px; top:363px;"></div>
+<div class="wall-tile" id="w2c3" style="left:1173px; top:363px;"></div>
+<div class="wall-tile" id="w2c4" style="left:1301px; top:363px;"></div>
+
+<div class="wall-tile" id="w3c0" style="left:789px; top:494px;"></div>
+<div class="wall-tile" id="w3c1" style="left:917px; top:494px;"></div>
+<div class="wall-tile" id="w3c2" style="left:1045px; top:494px;"></div>
+<div class="wall-tile" id="w3c3" style="left:1173px; top:494px;"></div>
+<div class="wall-tile" id="w3c4" style="left:1301px; top:494px;"></div>
+
+<div class="wall-tile" id="w4c0" style="left:789px; top:625px;"></div>
+<div class="wall-tile" id="w4c1" style="left:917px; top:625px;"></div>
+<div class="wall-tile" id="w4c2" style="left:1045px; top:625px;"></div>
+<div class="wall-tile" id="w4c3" style="left:1173px; top:625px;"></div>
+<div class="wall-tile" id="w4c4" style="left:1301px; top:625px;"></div>
+</div>
+
+  <!-- End Round Button -->
+  <img id="end-round" src="endroundup.png"
+     style="position: absolute; left: 76px; top: 350px; cursor: pointer;" 
+     onmousedown="this.src='endrounddown.png'" 
+     onmouseup="this.src='endroundup.png'" />
+
+<!-- End Game Button -->
+<img id="end-game" src="endgameup.png" 
+     style="position: absolute; left: 76px; top: 410px; cursor: pointer;" 
+     onmousedown="this.src='endgamedown.png'" 
+     onmouseup="this.src='endgameup.png'" />
+
+<!-- Confirm End Popup -->
+<div id="confirm-end" style="display: none; position: fixed; left: 50%; top: 50%; transform: translate(-50%, -50%);
+     width: 344px; height: 130px; background: url('areyousure.png') no-repeat center; background-size: cover;
+     box-shadow: 0 8px 20px rgba(0,0,0,0.5); z-index: 1000;">
+  <img id="confirm-yes" src="confirmup.png" style="position: absolute; bottom: 9px; left: 20px; width: 125px; height: 44px; cursor: pointer;"
+       onmousedown="this.src='confirmdown.png'" onmouseup="this.src='confirmup.png'">
+  <img id="confirm-no" src="notyetup.png" style="position: absolute; bottom: 9px; right: 20px; width: 125px; height: 44px; cursor: pointer;"
+       onmousedown="this.src='notyetdown.png'" onmouseup="this.src='notyetup.png'">
+</div>
+  <div id="final-score-overlay">
+    <div id="final-score-number">0</div>
+    <img id="new-game-btn" src="newgameup.png" onmousedown="this.src='newgamedown.png'" onmouseup="this.src='newgameup.png'">
+  </div>
+
+<script>
+
+  function rescale() {
+    const scaler = document.getElementById('scaler');
+    const screenW = window.innerWidth;
+    const screenH = window.innerHeight;
+    const scaleX = screenW / 1496;
+    const scaleY = screenH / 826;
+    const scale = Math.min(scaleX, scaleY);
+    scaler.style.transform = `scale(${scale})`;
+  }
+
+  window.addEventListener('resize', rescale);
+  window.addEventListener('load', rescale);
+
+const TILE_COLORS = ['blue', 'orange', 'red', 'black', 'aqua'];
+const TILE_IMAGES = {
+  blue: 'bluetile.png',
+  orange: 'orangetile.png',
+  red: 'redtile.png',
+  black: 'blacktile.png',
+  aqua: 'aquatile.png'
+};
+
+const finalWallColors = [
+  ['blue', 'orange', 'red', 'black', 'aqua'],
+  ['aqua', 'blue', 'orange', 'red', 'black'],
+  ['black', 'aqua', 'blue', 'orange', 'red'],
+  ['red', 'black', 'aqua', 'blue', 'orange'],
+  ['orange', 'red', 'black', 'aqua', 'blue']
+];
+
+const wallState = Array.from({ length: 5 }, () => Array(5).fill(null));
+const penaltySelected = Array(7).fill(false);
+let currentScore = 0;
+
+const popup = document.getElementById('popup');
+
+function updateScoreDisplay() {
+  // Show currentScore only (without penalty deducted here)
+  document.getElementById('score').textContent = currentScore;
+}
+
+document.querySelectorAll('.penalty').forEach((button, index) => {
+  button.addEventListener('click', () => {
+    penaltySelected[index] = !penaltySelected[index];
+    button.src = penaltySelected[index] ? button.src.replace('up', 'down') : button.src.replace('down', 'up');
+    // No immediate score update here
+  });
+});
+
+function calculatePenaltyPoints() {
+  let total = 0;
+  penaltySelected.forEach((selected, i) => {
+    if (selected) {
+      if (i <= 1) total += 1;
+      else if (i <= 4) total += 2;
+      else total += 3;
+    }
+  });
+  return total;
+}
+
+function getWallColumn(row, color) {
+  return finalWallColors[row].indexOf(color);
+}
+
+function scorePlacement(row, col) {
+  let horizontal = 1;
+  let vertical = 1;
+
+  let left = col - 1;
+  while (left >= 0 && wallState[row][left]) {
+    horizontal++;
+    left--;
+  }
+
+  let right = col + 1;
+  while (right < 5 && wallState[row][right]) {
+    horizontal++;
+    right++;
+  }
+
+  let up = row - 1;
+  while (up >= 0 && wallState[up][col]) {
+    vertical++;
+    up--;
+  }
+
+  let down = row + 1;
+  while (down < 5 && wallState[down][col]) {
+    vertical++;
+    down++;
+  }
+
+  if (horizontal > 1 && vertical > 1) return horizontal + vertical;
+  if (horizontal > 1) return horizontal;
+  if (vertical > 1) return vertical;
+  return 1;
+}
+
+function openPopup(targetEl, rowIndex) {
+  popup.innerHTML = '';
+  popup.style.background = 'url(selectionbox.png) no-repeat center';
+  popup.style.backgroundSize = 'contain';
+
+  const rect = targetEl.getBoundingClientRect();
+  popup.style.left = (rect.left + 60) + 'px';
+  popup.style.top = (rect.top - 20) + 'px';
+
+  TILE_COLORS.forEach(color => {
+    const img = document.createElement('img');
+    img.src = TILE_IMAGES[color];
+    img.className = 'tile-option';
+    img.addEventListener('click', () => {
+      clearRow(rowIndex);
+      targetEl.style.background = `url(${TILE_IMAGES[color]}) no-repeat center`;
+      targetEl.style.backgroundSize = 'cover';
+      targetEl.dataset.color = color;
+      popup.style.display = 'none';
+    });
+    popup.appendChild(img);
+  });
+
+  const clearBtn = document.createElement('div');
+  clearBtn.textContent = '✕';
+  clearBtn.style.cssText = 'width:48px;height:48px;line-height:48px;text-align:center;font-size:32px;cursor:pointer;background:#ccc;border-radius:6px;';
+  clearBtn.addEventListener('click', () => {
+    clearRow(rowIndex);
+    targetEl.style.background = '';
+    delete targetEl.dataset.color;
+    popup.style.display = 'none';
+  });
+  popup.appendChild(clearBtn);
+  popup.style.display = 'flex';
+}
+
+function clearRow(rowIndex) {
+  const tiles = document.querySelectorAll(`.player-tile[id^=r${rowIndex + 1}]`);
+  tiles.forEach(tile => {
+    tile.style.background = '';
+    delete tile.dataset.color;
+  });
+}
+
+document.querySelectorAll('.player-tile').forEach(tile => {
+  tile.addEventListener('click', () => {
+    const row = parseInt(tile.id[1]) - 1;
+    const col = parseInt(tile.id[3]) - 1;
+    const leftTile = document.getElementById(`r${row + 1}c1`);
+    const rowColor = leftTile.dataset.color;
+    if (col === 0) {
+      openPopup(tile, row);
+    } else if (!tile.dataset.color && rowColor) {
+      tile.style.background = `url(${TILE_IMAGES[rowColor]}) no-repeat center`;
+      tile.style.backgroundSize = 'cover';
+      tile.dataset.color = rowColor;
+    }
+  });
+});
+
+document.getElementById('end-round').addEventListener('click', () => {
+  for (let row = 0; row < 5; row++) {
+    const tiles = [];
+    for (let col = 1; col <= row + 1; col++) {
+      const tile = document.getElementById(`r${row + 1}c${col}`);
+      if (!tile.dataset.color) break;
+      tiles.push(tile);
+    }
+
+    if (tiles.length === row + 1) {
+      const color = tiles[0].dataset.color;
+      const wallCol = getWallColumn(row, color);
+      const wallTile = document.getElementById(`w${row}c${wallCol}`);
+      if (wallCol !== -1 && !wallState[row][wallCol] && wallTile) {
+        wallState[row][wallCol] = color;
+        const rectStart = tiles[tiles.length - 1].getBoundingClientRect();
+        const rectEnd = wallTile.getBoundingClientRect();
+        const gameRect = document.getElementById('game').getBoundingClientRect();
+        const clone = tiles[tiles.length - 1].cloneNode(true);
+        clone.classList.add('slide-to-wall');
+        clone.style.position = 'absolute';
+        clone.style.left = (rectStart.left - gameRect.left) + 'px';
+        clone.style.top = (rectStart.top - gameRect.top) + 'px';
+        clone.style.background = `url(${TILE_IMAGES[color]}) no-repeat center`;
+        clone.style.backgroundSize = 'cover';
+        document.getElementById('game').appendChild(clone);
+        requestAnimationFrame(() => {
+          clone.style.left = (rectEnd.left - gameRect.left) + 'px';
+          clone.style.top = (rectEnd.top - gameRect.top) + 'px';
+        });
+        setTimeout(() => {
+          clone.remove();
+          wallTile.style.background = `url(${TILE_IMAGES[color]}) no-repeat center`;
+          wallTile.style.backgroundSize = 'cover';
+        }, 600);
+        currentScore += scorePlacement(row, wallCol);
+      }
+
+      tiles.forEach(tile => {
+        tile.classList.add('fly-left');
+        setTimeout(() => {
+          tile.style.background = '';
+          delete tile.dataset.color;
+          tile.classList.remove('fly-left');
+        }, 600);
+      });
+
+      setTimeout(() => {
+        const leftTile = document.getElementById(`r${row + 1}c1`);
+        delete leftTile.dataset.color;
+        leftTile.style.background = '';
+      }, 600);
+    }
+  }
+
+  // Now handle penalty points only here (end round)
+  const penalties = calculatePenaltyPoints();
+  currentScore -= penalties;
+  penaltySelected.fill(false);
+  document.querySelectorAll('.penalty').forEach(btn => btn.src = btn.src.replace('down', 'up'));
+
+  updateScoreDisplay();
+});
+
+document.addEventListener('click', (e) => {
+  if (!e.target.closest('.tile-option') && !e.target.classList.contains('player-tile')) {
+    popup.style.display = 'none';
+  }
+});
+document.getElementById('end-game').addEventListener('click', () => {
+  document.getElementById('confirm-end').style.display = 'block';
+});
+
+document.getElementById('confirm-no').addEventListener('click', () => {
+  document.getElementById('confirm-end').style.display = 'none';
+});
+
+const introTiles = [];
+const tileImages = ['intro1.jpg', 'intro2.jpg', 'intro3.jpg', 'intro4.jpg', 'intro5.jpg', 'intro6.jpg'];
+const logoBg = document.getElementById('logo-bg');
+
+const tileSize = 212;
+const cols = 8;
+const rows = 4;
+const offsetX = (1496 - (cols * tileSize)) / 2;
+const offsetY = (826 - (rows * tileSize)) / 2;
+
+for (let row = 0; row < rows; row++) {
+  for (let col = 0; col < cols; col++) {
+    const tile = document.createElement('div');
+    tile.className = 'logo-tile';
+    tile.style.left = `${offsetX + col * tileSize}px`;
+    tile.style.top = `${offsetY + row * tileSize}px`;
+    tile.style.backgroundImage = `url(${tileImages[Math.floor(Math.random() * tileImages.length)]})`;
+
+    logoBg.appendChild(tile);
+    introTiles.push(tile);
+  }
+}
+
+// Shuffle tiles every 0.5s
+const tileShuffleInterval = setInterval(() => {
+  introTiles.forEach(tile => {
+    const img = tileImages[Math.floor(Math.random() * tileImages.length)];
+    tile.style.backgroundImage = `url(${img})`;
+  });
+}, 500);
+
+// Step 1: Fade in logo (still blurred)
+setTimeout(() => {
+  const logo = document.getElementById('main-logo');
+  logo.style.opacity = 1;
+}, 500);
+
+// Step 2: Zoom and sharpen the logo
+setTimeout(() => {
+  const logo = document.getElementById('main-logo');
+  logo.style.transform = 'translate(-50%, -50%) scale(1.15)';
+  logo.style.filter = 'blur(0px)';
+}, 1000);
+
+// Step 3: After 3s of clear logo, blur + fade out everything
+setTimeout(() => {
+  clearInterval(tileShuffleInterval);
+
+  const intro = document.getElementById('intro');
+  const logo = document.getElementById('main-logo');
+  const tiles = document.querySelectorAll('.logo-tile');
+
+  logo.style.filter = 'blur(8px)';
+  tiles.forEach(tile => tile.style.filter = 'blur(5px)');
+
+  intro.style.transition = 'opacity 1s ease';
+  intro.style.opacity = 0;
+
+  setTimeout(() => {
+    intro.style.display = 'none';
+    const game = document.getElementById('game');
+    game.style.visibility = 'visible';
+
+    // Smoothly fade in buttons
+    document.getElementById('end-round').style.opacity = 1;
+    document.getElementById('end-game').style.opacity = 1;
+  }, 1000);
+}, 3000);
+
+function pulseGroup(tiles, callback) {
+  tiles.forEach((tile, i) => {
+    setTimeout(() => {
+      tile.classList.add('glow');
+      setTimeout(() => {
+        tile.classList.remove('glow');
+        if (i === tiles.length - 1 && callback) callback();
+      }, 300);
+    }, i * 150);
+  });
+}
+
+function endGameScoring() {
+  let totalScore = currentScore;
+
+  const wallTiles = [];
+  for (let r = 0; r < 5; r++) {
+    wallTiles[r] = [];
+    for (let c = 0; c < 5; c++) {
+      const tile = document.getElementById(`w${r}c${c}`);
+      wallTiles[r][c] = tile;
+    }
+  }
+
+  const queue = [];
+
+  // Full rows
+  for (let r = 0; r < 5; r++) {
+    if (wallState[r].every(Boolean)) {
+      queue.push(() => pulseGroup(wallTiles[r], () => {
+        totalScore += 2;
+        updateFinalScore(totalScore);
+        next();
+      }));
+    }
+  }
+
+  // Full columns
+  for (let c = 0; c < 5; c++) {
+    const colFilled = wallState.every(row => row[c]);
+    if (colFilled) {
+      const colTiles = wallTiles.map(row => row[c]);
+      queue.push(() => pulseGroup(colTiles, () => {
+        totalScore += 7;
+        updateFinalScore(totalScore);
+        next();
+      }));
+    }
+  }
+
+  // Complete sets of each color
+  TILE_COLORS.forEach(color => {
+    const matched = [];
+    for (let r = 0; r < 5; r++) {
+      const col = finalWallColors[r].indexOf(color);
+      if (wallState[r][col] === color) {
+        matched.push(wallTiles[r][col]);
+      }
+    }
+    if (matched.length === 5) {
+      queue.push(() => pulseGroup(matched, () => {
+        totalScore += 10;
+        updateFinalScore(totalScore);
+        next();
+      }));
+    }
+  });
+
+  function updateFinalScore(val) {
+    document.getElementById('score').textContent = val;
+    document.getElementById('final-score-number').textContent = val;
+  }
+
+  let index = 0;
+  function next() {
+    if (index < queue.length) {
+      queue[index++]();
+    } else {
+      // Show popup once all bonuses done or if no bonuses
+      document.getElementById('final-score-overlay').style.display = 'block';
+      updateFinalScore(totalScore);
+    }
+  }
+  next();
+}
+
+// Hook it up
+const confirmYesBtn = document.getElementById('confirm-yes');
+confirmYesBtn.removeEventListener('click', () => {});
+confirmYesBtn.addEventListener('click', () => {
+  document.getElementById('confirm-end').style.display = 'none';
+  endGameScoring();
+});
+
+// Reset game on new game click
+const newGameBtn = document.getElementById('new-game-btn');
+newGameBtn.addEventListener('click', () => {
+  location.reload();
+});
+</script>
+</body>
+</html>
